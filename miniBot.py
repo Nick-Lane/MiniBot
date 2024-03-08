@@ -9,7 +9,7 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 
 # bot's token
-token_file = open("token", "r")
+token_file = open("files/token", "r")
 token = token_file.read()
 
 class result:
