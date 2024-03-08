@@ -8,10 +8,13 @@ class result:
     def __init__(self, date: datetime.date, time: int):
         self.date = date
         self.time = time
+    def __str__(self):
+        return f"Date:{self.date}, time: {self.time}"
 
 class mb_user:
     def __init__(self, id: discord.user):
         self.id = id # id is a discord user
+        self.results = [] # list of type result
 
 class mb_users:
     def __init__(self):
@@ -61,7 +64,7 @@ class mb_users:
 
         # if it's a result
         if r:
-            mb_users.addResult(r, message.author)
+            self.addResult(r, message.author)
 
 
 
@@ -69,10 +72,10 @@ class mb_users:
 users = mb_users() 
 
 class myClient(discord.Client):
-    async def on_ready():
+    async def on_ready(elf):
         print(f"Logged in as {client.user}")
 
-    async def on_message(message):
+    async def on_message(self, message):
         # Don't respond to your own message
         if message.author == client.user:
             return
@@ -90,7 +93,7 @@ class myClient(discord.Client):
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
-client = discord.Client(intents=intents)
+client = myClient(intents=intents)
 
 # bot's token
 token_file = open("files/token", "r")
