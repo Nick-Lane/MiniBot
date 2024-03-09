@@ -57,9 +57,19 @@ class MbUser:
         if pl >= len(self.times_placed):
             self.times_placed += [0] * (pl - len(self.times_placed) +1)
         self.times_placed[pl] += 1
+    
+    def get_todays_result(self) -> Result | None:
+        for r in self.results:
+            if r.date == date.today():
+                return r
+        return None
 
 
-
+class Placing:
+    def __init__(self, user: MbUser, result: Result):
+        self.user = user
+        self.result = result
+        self.place = -1
 
 
 
@@ -127,7 +137,7 @@ class MiniBot:
         
     
     # Function to return Result object, if the message is a mini Result
-    def check_result(self, message_content):
+    def check_result(self, message_content) -> Result | None:
         # regular expressions to match the patterns
         url_pattern = r"https://www.nytimes.com/badges/games/mini.html\?d=(\d{4}-\d{2}-\d{2})&t=(\d+)"
         app_pattern = r"I solved the (\d{1,2}/\d{1,2}/\d{4}) New York Times Mini Crossword in (\d{1,2}):(\d{2})"
@@ -159,12 +169,27 @@ class MiniBot:
         r = self.check_result(message.content)
 
         # if it's a Result
-        if r:
+        if r is not None:
             self.add(r, message)
         # TODO implement commands
     
     def daily_leaderboard(self, channel: discord.channel):
+        message = "DAILY LEADERBOARD:\n"
         placings = []
+        unsorted_placings = []
+        for u in self.users:
+            r = u.get_todays_result()
+            if r is not None:
+                unsorted_placings.append(Placing(u,r))
+        if (len(unsorted_placings) > 0):
+            placings = sorted(unsorted_placings, key = lambda x: x.result.time)
+            placings.insert(0,"zero")
+            i = 1
+            while (i < len(placings)):
+                message += f"{i}. {placings[i].user.id.display_name} {placings[i].result.time}\n"
+                placings[i].user.place(i)
+                i += 1
+
 
             
 
@@ -185,6 +210,7 @@ class myClient(discord.Client):
         
         # send the message to the bot 
         bot.feed(message)
+    
     
     
     
