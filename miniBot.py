@@ -5,33 +5,34 @@ import random
 
 
 
-class result:
+class Result:
     def __init__(self, date: datetime.date, time: int):
         self.date = date
         self.time = time
     def __str__(self):
         return f"Date:{self.date}, time: {self.time}"
 
-class preference:
+
+class Preference:
     def __init__(self,type: str, value: int):
         self.type = type
         self.value = value
 
-class mb_user:
+class MbUser:
     def __init__(self, id: discord.user):
         self.id = id # id is a discord user
-        self.results = [] # list of type result
-        self.preferences = [] # list of type preference
+        self.results = [] # list of type Result
+        self.preferences = [] # list of type Preference
         self.times_placed = [] # number of times placed 1st, 2nd, etc. index 0 will be empty so index 1 is 1st, etc.
 
-    def add(self, res: result, chn: discord.channel):
+    def add(self, res: Result, chn: discord.channel):
         self.results.append(res)
         for i in self.results:
             if i.date < date.today():
                 self.results.remove(i)
         self.congratulate(chn)
 
-    def has_preference(self, pref_type: str) -> bool:
+    def get_preference(self, pref_type: str) -> Preference:
         for p in self.preferences:
             if p.type == pref_type:
                 return True
@@ -40,9 +41,9 @@ class mb_user:
     def congratulate(self, chnl: discord.channel):
         file_name = "files/congratsMessages"
         # if the player has specified a ratio for how often they want to see goofy congratulation messages
-        if hasattr(self, "goofy_ratio"):
+        if self.has_preference("goofy_ratio"):
             # if they roll more than their ratio, they get a normal message.
-            # if they roll less than their ratio, they get a goofy one. IDK, this made sense when I wrote it
+            # if they roll less than or equal to their ratio, they get a goofy one. IDK, this made sense when I wrote it
             if random.randRange(1,10) <= self.goofy_ratio:
                 file_name = "files/goofyCongratsMessages"
         file = open(file_name, "r")
@@ -61,7 +62,8 @@ class mb_user:
 
 
 
-class permissions:
+
+class Permissions:
     def __init__(self,fname: str):
         self.p = []
         file = open(fname, "r")
@@ -84,8 +86,8 @@ class preferences:
         self.p = file.readlines()
         file.close()
     
-    # accepts a string, str, which is the preference we're asking for
-    # returns a list of strings, which are the usernames of users with that preference or None
+    # accepts a string, str, which is the Preference we're asking for
+    # returns a list of strings, which are the usernames of users with that Preference or None
     def get(self, str):
         for i in self.p:
             print(i)
@@ -97,8 +99,8 @@ class preferences:
 
 class MiniBot:
     def __init__(self):
-        self.users = [] # list of type mb_user
-        self.per = permissions("files/permissions")
+        self.users = [] # list of type MbUser
+        self.per = Permissions("files/Permissions")
     
     def is_user(self, userID):
         for u in self.users:
@@ -106,25 +108,25 @@ class MiniBot:
                 return True
         return False
     
-    def get_mb_user(self, userID: discord.user) -> mb_user:
+    def get_mb_user(self, userID: discord.user) -> MbUser:
         for u in self.users:
             if u.id == userID:
                 return u
         return None
     
-    # add a result to the user that submitted it
-    def add(self, res: result, mes: discord.message):
+    # add a Result to the user that submitted it
+    def add(self, res: Result, mes: discord.message):
         # if the submitter isn't already in the system
         userID = mes.author
         if not self.is_user(userID):
-            self.users.append(mb_user(userID))
+            self.users.append(MbUser(userID))
 
         # add the results to the user's results
         self.get_mb_user(userID).add(res, mes.channel) 
 
         
     
-    # Function to return result object, if the message is a mini result
+    # Function to return Result object, if the message is a mini Result
     def check_result(self, message_content):
         # regular expressions to match the patterns
         url_pattern = r"https://www.nytimes.com/badges/games/mini.html\?d=(\d{4}-\d{2}-\d{2})&t=(\d+)"
@@ -150,15 +152,20 @@ class MiniBot:
         # convert the date string to a datetime.date object
         date = datetime.strptime(date_str, date_format).date()
 
-        # create a result object and return it
-        return result(date,time)
+        # create a Result object and return it
+        return Result(date,time)
     
     def feed(self, message: discord.message):
         r = self.check_result(message.content)
 
-        # if it's a result
+        # if it's a Result
         if r:
             self.add(r, message)
+        # TODO implement commands
+    
+    def daily_leaderboard(self, channel: discord.channel):
+        placings = []
+
             
 
 
