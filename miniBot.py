@@ -1,6 +1,7 @@
 import discord
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import re
+import random
 
 
 
@@ -11,10 +12,54 @@ class result:
     def __str__(self):
         return f"Date:{self.date}, time: {self.time}"
 
+class preference:
+    def __init__(self,type: str, value: int):
+        self.type = type
+        self.value = value
+
 class mb_user:
     def __init__(self, id: discord.user):
         self.id = id # id is a discord user
         self.results = [] # list of type result
+        self.preferences = [] # list of type preference
+        self.times_placed = [] # number of times placed 1st, 2nd, etc. index 0 will be empty so index 1 is 1st, etc.
+
+    def add(self, res: result, chn: discord.channel):
+        self.results.append(res)
+        for i in self.results:
+            if i.date < date.today():
+                self.results.remove(i)
+        self.congratulate(chn)
+
+    def has_preference(self, pref_type: str) -> bool:
+        for p in self.preferences:
+            if p.type == pref_type:
+                return True
+        return False
+    
+    def congratulate(self, chnl: discord.channel):
+        file_name = "files/congratsMessages"
+        # if the player has specified a ratio for how often they want to see goofy congratulation messages
+        if hasattr(self, "goofy_ratio"):
+            # if they roll more than their ratio, they get a normal message.
+            # if they roll less than their ratio, they get a goofy one. IDK, this made sense when I wrote it
+            if random.randRange(1,10) <= self.goofy_ratio:
+                file_name = "files/goofyCongratsMessages"
+        file = open(file_name, "r")
+        congrats_messages = file.readlines()
+        file.close()
+        # send a random congratulation message from the appropriate list to the appropriate channel
+        chnl.send(congrats_messages[random.randrange(0,len(congrats_messages))])
+    
+    def place(self, pl):
+        # if the list isn't long enough to accept the place given, extend it the proper length
+        if pl >= len(self.times_placed):
+            self.times_placed += [0] * (pl - len(self.times_placed) +1)
+        self.times_placed[pl] += 1
+
+
+
+
 
 class permissions:
     def __init__(self,fname: str):
@@ -48,11 +93,12 @@ class preferences:
                 return i[len(str)+1:].split()
         return None
 
-class mini_bot:
+
+
+class MiniBot:
     def __init__(self):
         self.users = [] # list of type mb_user
         self.per = permissions("files/permissions")
-        self.pref = preferences("files/preferences")
     
     def is_user(self, userID):
         for u in self.users:
@@ -60,18 +106,21 @@ class mini_bot:
                 return True
         return False
     
-    def get_mb_user(self, userID: discord.user):
+    def get_mb_user(self, userID: discord.user) -> mb_user:
         for u in self.users:
             if u.id == userID:
                 return u
         return None
     
     # add a result to the user that submitted it
-    def add(self, res: result, userID: discord.user):
+    def add(self, res: result, mes: discord.message):
         # if the submitter isn't already in the system
+        userID = mes.author
         if not self.is_user(userID):
             self.users.append(mb_user(userID))
-        
+
+        # add the results to the user's results
+        self.get_mb_user(userID).add(res, mes.channel) 
 
         
     
@@ -109,12 +158,14 @@ class mini_bot:
 
         # if it's a result
         if r:
-            self.add(r, message.author)
+            self.add(r, message)
+            
+
 
 
 
 # global object
-bot = mini_bot() 
+bot = MiniBot() #TODO change so it starts as none, then in on_ready, initialize so it can read in JSON and remember everyone's info
 
 class myClient(discord.Client):
     async def on_ready(self):
