@@ -1,0 +1,12 @@
+command options for MiniBot
+general commands
+
+{minibot | mb} {no_congrats | congrats} {goofy_ratio <num>} {no_leaderboard}
+
+
+
+admin commands
+either posted without command token in secret-minibot-commands or
+{minibot_admin | mb_admin}
+su <minibot command> # executes a command as user being replied to
+    # must be used in a comment replying to another user's message
