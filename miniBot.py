@@ -25,7 +25,8 @@ class Preference:
 # Command class. 
         # type: 'user' | 'admin' 
         # content: just the command (no 'minibot' or 'mb')
-        # user: the discord User executing the command. 
+        # user: the discord User executing the command.
+        # message: discord Message in which the command was sent
 class Command:
     def __init__(self, type: str, content: str, user: discord.User, message: discord.Message):
         self.type = type
@@ -56,20 +57,31 @@ class MbUser:
     def clear_preference(self, pref_type: str):
         self.preferences = [pref for pref in self.preferences if pref.type != pref_type]
 
-    # TODO goofy ratio 1-10   
     def set_preference(self, preference: Preference):
+        if preference.type.startswith('yes'):
+            self.clear_preference('no' + preference.type[3:])
+            return
+        if preference.type == 'goofy_ratio':
+            if preference.value > 10:
+                preference.value = 10
+            if preference.value < 0:
+                preference.value = 0
+            if preference.value == 0:
+                self.clear_preference('goofy_ratio')
+                return
         # if they already have the preference, remove it
-        if self.get_preference(preference.type):
-            self.clear_preference(preference.type)
+        self.clear_preference(preference.type)
         self.preferences.add(preference)
 
     async def congratulate(self, chnl: discord.TextChannel):
+        if self.get_preference('no_congrats'):
+            return
         file_name = 'files/congratsMessages'
         # if the player has specified a ratio for how often they want to see goofy congratulation messages
-        if self.has_preference('goofy_ratio'):
+        if self.get_preference('goofy_ratio'):
             # if they roll more than their ratio, they get a normal message.
             # if they roll less than or equal to their ratio, they get a goofy one. IDK, this made sense when I wrote it
-            if random.randRange(1,10) <= self.goofy_ratio:
+            if random.randRange(1,11) <= self.get_preference('goofy_ratio').value:
                 file_name = 'files/goofyCongratsMessages'
         file = open(file_name, 'r')
         congrats_messages = file.readlines()
@@ -176,20 +188,45 @@ class MiniBot:
         # create a Result object and return it
         return Result(date,time)
     # TODO 'say' admin command, so I can make it say whatever I want, in whichever channel I choose
-    # TODO make a 'this' command to identify channels to 
     async def run_command(self, command: Command):
         if len(command.content.split()) == 0:
             return
-        
+        command.content = command.content.lower()
         # ------------user commands-----------------------
         user_commands = ['no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard', 'goofy_ratio']
         if command.type == 'user':
             if command.content.split()[0] not in user_commands:
-                await command.message.channel.send('Command not recognized')
+                await command.message.reply('Command not recognized')
                 return
-            else:
-                if command.content.split()[0] == 'goofy_ratio' and len(command.content.split() > 1):
-                    self.get_mb_user(command.user).set_preference(Preference('goofy_ratio', command.content.split()[1]))
+            if command.content.split()[0] == 'goofy_ratio' and len(command.content.split() > 1):
+                self.get_mb_user(command.user).set_preference(Preference('goofy_ratio', command.content.split()[1]))
+            else: # it's 'no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard'
+                self.get_mb_user(command.user).set_preference(Preference(command.content.split()[0], 1))
+            responses = ['Okay', 'Awesome', 'Sweet', 'Cool', 'Gotcha']
+            await command.message.reply(f'{responses[random.randrange(0,len(responses))]}, {command.user.display_name}, preference set.')
+            return
+        # ---------------admin commands--------------------------
+        else:# it's an admin command
+            admin_commands = ['say']
+            if not self.per.has_permission(command.user.name, 'admin'):
+                await command.message.reply('Permission denied.')
+                return
+            if command.message.reference: # if it's a reply, that means I'm running the command as the user
+                referenced_message = await command.message.channel.fetch_message(command.message.reference.message_id)
+                self.run_command(Command('user', command.content, referenced_message.author, command.message))
+                return
+            if command.content.split()[0] not in admin_commands:
+                await command.message.reply('Command not recognized')
+                return
+            if command.content.split()[0] == 'say':
+                if not command.content.split()[1]:
+                    return
+                channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
+                if channel:
+                    message = ' '.join(command.content.split()[2:]).strip() # message is everything after say <channel>
+                    await channel.send(message)
+
+
             
     async def check_command(self, message: discord.Message):
         possible_command_tokens = ['minibot', 'mb']
