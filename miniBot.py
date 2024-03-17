@@ -2,6 +2,7 @@ import discord
 from datetime import datetime, timedelta, date
 import re
 import random
+import asyncio
 
 
 
@@ -35,7 +36,7 @@ class Command:
         self.message = message
 
 class MbUser:
-    def __init__(self, id: discord.user):
+    def __init__(self, id: discord.User):
         self.id = id # id is a discord user
         self.results = [] # list of type Result
         self.preferences = [] # list of type Preference
@@ -43,9 +44,7 @@ class MbUser:
 
     async def add(self, res: Result, chn: discord.TextChannel):
         self.results.append(res)
-        for i in self.results:
-            if i.date < date.today():
-                self.results.remove(i)
+        self.results = [res for res in self.results if res.date >= date.today()]# remove any results that are from earlier than today
         if res.date > date.today:# if it's tomorrow's puzzle
             await chn.send(f'Great job on tomorrow\'s puzzle, {self.id.displayName}!')
             return
@@ -136,9 +135,10 @@ class Permissions:
 
 
 class MiniBot:
-    def __init__(self):
+    def __init__(self, client: discord.Client):
         self.users = [] # list of type MbUser
         self.per = Permissions('files/permissions')
+        self.client = client
     
     def is_user(self, userID):
         for u in self.users:
@@ -283,7 +283,11 @@ class MiniBot:
         else:
             return f'{time // 60}:{time % 60}'
         
-    async def daily_leaderboard(self, channel: discord.TextChannel):
+    async def daily_leaderboard(self):
+        guild = discord.utils.get(client.guilds, name='Lanes and Nuttings')
+        if not guild:
+            return
+        channel = discord.utils.get(guild.channels, name='puzzles')
         message = 'DAILY LEADERBOARD:\n'
         placings = []
         unsorted_placings = []
@@ -313,6 +317,23 @@ class MiniBot:
 # TODO handle global object properly
 # global object
 bot = MiniBot() #TODO change so it starts as none, then in on_ready, initialize so it can read in JSON and remember everyone's info
+
+
+# Schedule the task to run every day at 8 PM
+async def daily_scheduler():
+    while True:
+        # Get current time
+        now = datetime.now()
+        # Calculate the time until 8 PM
+        next_time = datetime(now.year, now.month, now.day, 20, 0, 0) - now
+        # If it's already past 8 PM, schedule the task for the next day
+        if next_time.total_seconds() < 0:
+            next_time += timedelta(days=1)
+        # Sleep until it's time for the task
+        await asyncio.sleep(next_time.total_seconds())
+        # Execute the task
+        await bot.daily_leaderboard()
+
 
 class myClient(discord.Client):
     async def on_ready(self):
