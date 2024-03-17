@@ -41,14 +41,17 @@ class MbUser:
         self.preferences = [] # list of type Preference
         self.times_placed = [] # number of times placed 1st, 2nd, etc. index 0 will be empty so index 1 is 1st, etc.
 
-    async def add(self, res: Result, chn: discord.channel):
+    async def add(self, res: Result, chn: discord.TextChannel):
         self.results.append(res)
         for i in self.results:
             if i.date < date.today():
                 self.results.remove(i)
+        if res.date > date.today:# if it's tomorrow's puzzle
+            await chn.send(f'Great job on tomorrow\'s puzzle, {self.id.displayName}!')
+            return
         await self.congratulate(chn)
 
-    def get_preference(self, pref_type: str) -> Preference | None:
+    def get_preference(self, pref_type: str) -> Preference:
         for p in self.preferences:
             if p.type == pref_type:
                 return p
@@ -87,7 +90,9 @@ class MbUser:
         congrats_messages = file.readlines()
         file.close()
         # send a random congratulation message from the appropriate list to the appropriate channel
-        await chnl.send(congrats_messages[random.randrange(0,len(congrats_messages))])
+        message = congrats_messages[random.randrange(0,len(congrats_messages))]
+        message = message.replace('uname', self.id.displayName)
+        await chnl.send(message)
     
     def place(self, pl):
         # if the list isn't long enough to accept the place given, extend it the proper length
@@ -95,7 +100,7 @@ class MbUser:
             self.times_placed += [0] * (pl - len(self.times_placed) +1)
         self.times_placed[pl] += 1
     
-    def get_todays_result(self) -> Result | None:
+    def get_todays_result(self) -> Result:
         for r in self.results:
             if r.date == date.today():
                 return r
@@ -133,7 +138,7 @@ class Permissions:
 class MiniBot:
     def __init__(self):
         self.users = [] # list of type MbUser
-        self.per = Permissions('files/Permissions')
+        self.per = Permissions('files/permissions')
     
     def is_user(self, userID):
         for u in self.users:
@@ -141,7 +146,7 @@ class MiniBot:
                 return True
         return False
     
-    def get_mb_user(self, userID: discord.User) -> MbUser | None:
+    def get_mb_user(self, userID: discord.User) -> MbUser:
         for u in self.users:
             if u.id == userID:
                 return u
@@ -160,7 +165,7 @@ class MiniBot:
         
     
     # return Result object, if the message is a mini Result
-    def check_result(self, message_content: str) -> Result | None:
+    def check_result(self, message_content: str) -> Result:
         # regular expressions to match the patterns
         url_pattern = r'https://www.nytimes.com/badges/games/mini.html\?d=(\d{4}-\d{2}-\d{2})&t=(\d+)'
         app_pattern = r'I solved the (\d{1,2}/\d{1,2}/\d{4}) New York Times Mini Crossword in (\d{1,2}):(\d{2})'
@@ -225,6 +230,8 @@ class MiniBot:
                 if channel:
                     message = ' '.join(command.content.split()[2:]).strip() # message is everything after say <channel>
                     await channel.send(message)
+            admin_responses = ['You got it, boss', 'Sure thing, boss']
+            await command.message.reply(admin_responses[random.randrange(0,len(admin_responses))])
 
 
             
@@ -264,11 +271,10 @@ class MiniBot:
         r = self.check_result(message.content)
 
         # if it's a Result
-        if r is not None:
+        if r:
              await self.add(r, message)
-        
-        # handle commands
-        # TODO COMMANDS
+        else:
+            await self.check_command(message)
 
     # returns a string representation of time - seconds:int -> 'm:ss'
     def format_time(time: int) -> str:
@@ -277,7 +283,7 @@ class MiniBot:
         else:
             return f'{time // 60}:{time % 60}'
         
-    def daily_leaderboard(self, channel: discord.TextChannel):
+    async def daily_leaderboard(self, channel: discord.TextChannel):
         message = 'DAILY LEADERBOARD:\n'
         placings = []
         unsorted_placings = []
@@ -297,6 +303,7 @@ class MiniBot:
                 message += f'{i}. {placings[i].user.id.display_name} {self.format_time(placings[i].result.time)}\n'
                 placings[i].user.place(i)
                 i += 1
+            await channel.send(message)
 
 
             
