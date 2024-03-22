@@ -5,7 +5,9 @@ import random
 import asyncio
 
 
-
+# result class
+#     date: result date
+#     time: time, in seconds that it took to complete the puzzle
 class Result:
     def __init__(self, date: datetime.date, time: int):
         self.date = date
@@ -14,20 +16,20 @@ class Result:
         return f'Date:{self.date}, time: {self.time}'
 
 # preference types:
-# no_congrats
-# no_rekkening
-# no_leaderboard
-# goofy_ratio
+#     no_congrats
+#     no_rekkening
+#     no_leaderboard
+#     goofy_ratio
 class Preference:
     def __init__(self, type: str, value: int):
         self.type = type
         self.value = value
 
 # Command class. 
-        # type: 'user' | 'admin' 
-        # content: just the command (no 'minibot' or 'mb')
-        # user: the discord User executing the command.
-        # message: discord Message in which the command was sent
+#    type: 'user' | 'admin' 
+#    content: just the command (no 'minibot' or 'mb')
+#    user: the discord User executing the command.
+#    message: discord Message in which the command was sent
 class Command:
     def __init__(self, type: str, content: str, user: discord.User, message: discord.Message):
         self.type = type
@@ -35,6 +37,11 @@ class Command:
         self.user = user
         self.message = message
 
+# user class for MiniBot
+#     id: discord API User object
+#     results: list of type Result
+#     preferences: list of type Preference
+#     times_placed: list of number of times placed 1st, 2nd, etc. index 0 will be empty so index 1 is 1st, etc.
 class MbUser:
     def __init__(self, id: discord.User):
         self.id = id # id is a discord user
@@ -105,7 +112,10 @@ class MbUser:
                 return r
         return None
 
-
+# placing class for leaderboard
+    # user: MbUser
+    # result: Result
+    # place: place given in leaderboard
 class Placing:
     def __init__(self, user: MbUser, result: Result):
         self.user = user
@@ -113,7 +123,9 @@ class Placing:
         self.place = -1
 
 
-
+# poorly written class for permissions.
+#     permissions is a list of strings
+#         each string consists of a permission name, followed by the users that have that permission
 class Permissions:
     def __init__(self,fname: str):
         self.permissions = []
@@ -312,7 +324,7 @@ class MiniBot:
 
             
 
-
+# TODO handle minibot so that it can be fed the client as an argument. This will probably need to be done using decorations
 # TODO handle data so that it won't be lost when disconnecting and/or restarting
 # TODO handle global object properly
 # global object
