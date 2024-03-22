@@ -144,8 +144,10 @@ class Permissions:
     def has_permission(self, name, permission: str) -> bool:
         return name in self.get(permission)
 
-
-
+# TODO write all information out to files every night during daily_leaderboard, and make it so we can read it back in, in case the bot loses power or connection
+# bot class.
+#     users: list of type MbUser
+#     client: discord Client object
 class MiniBot:
     def __init__(self, client: discord.Client):
         self.users = [] # list of type MbUser
@@ -322,14 +324,32 @@ class MiniBot:
             await channel.send(message)
 
 
-            
+intents = discord.Intents.default()
+intents.messages = True
+intents.message_content = True
+client = discord.Client(intents=intents)
+
 
 # TODO handle minibot so that it can be fed the client as an argument. This will probably need to be done using decorations
 # TODO handle data so that it won't be lost when disconnecting and/or restarting
 # TODO handle global object properly
 # global object
-bot = MiniBot() #TODO change so it starts as none, then in on_ready, initialize so it can read in JSON and remember everyone's info
+bot = MiniBot(client) #TODO change so it starts as none, then in on_ready, initialize so it can read in JSON and remember everyone's info
 
+# Event handler for when the bot is ready
+@client.event
+async def on_ready():
+    print(f'Logged in as {client.user.name}')
+
+# Event handler for messages
+@client.event
+async def on_message(self, message):
+        # Don't respond to your own message
+        if message.author == client.user:
+            return
+        
+        # send the message to the bot 
+        bot.feed(message)
 
 # Schedule the task to run every day at 8 PM
 async def daily_scheduler():
@@ -346,34 +366,6 @@ async def daily_scheduler():
         # Execute the task
         await bot.daily_leaderboard()
 
-
-class myClient(discord.Client):
-    async def on_ready(self):
-        print(f'Logged in as {client.user}')
-
-    async def on_message(self, message):
-        # Don't respond to your own message
-        if message.author == client.user:
-            return
-        
-        # send the message to the bot 
-        bot.feed(message)
-    
-    
-    
-    
-    
-
-
-
-
-
-
-# initialize the Discord client
-intents = discord.Intents.default()
-intents.messages = True
-intents.message_content = True
-client = myClient(intents=intents)
 
 # bot's token
 token_file = open('files/token', 'r')
