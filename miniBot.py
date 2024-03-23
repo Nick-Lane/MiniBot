@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, date
 import re
 import random
 import asyncio
+import yaml
 
 
 # result class
@@ -24,6 +25,8 @@ class Preference:
     def __init__(self, type: str, value: int):
         self.type = type
         self.value = value
+    def __str__(self):
+        return f'{self.type}:{self.value}'
 
 # Command class. 
 #    type: 'user' | 'admin' 
@@ -52,9 +55,8 @@ class MbUser:
     async def add(self, res: Result, chn: discord.TextChannel):
         self.results.append(res)
         self.results = [res for res in self.results if res.date >= date.today()]# remove any results that are from earlier than today
-        if res.date > date.today:# if it's tomorrow's puzzle
-            await chn.send(f'Great job on tomorrow\'s puzzle, {self.id.displayName}!')
-            return
+        if res.date > date.today():# if it's tomorrow's puzzle
+            await chn.send(f'Great job on tomorrow\'s puzzle, {self.id.display_name}!')
         await self.congratulate(chn)
 
     def get_preference(self, pref_type: str) -> Preference:
@@ -70,6 +72,7 @@ class MbUser:
         if preference.type.startswith('yes'):
             self.clear_preference('no' + preference.type[3:])
             return
+        # print(type(preference.value))
         if preference.type == 'goofy_ratio':
             if preference.value > 10:
                 preference.value = 10
@@ -80,7 +83,7 @@ class MbUser:
                 return
         # if they already have the preference, remove it
         self.clear_preference(preference.type)
-        self.preferences.add(preference)
+        self.preferences.append(preference)
 
     async def congratulate(self, chnl: discord.TextChannel):
         if self.get_preference('no_congrats'):
@@ -90,14 +93,14 @@ class MbUser:
         if self.get_preference('goofy_ratio'):
             # if they roll more than their ratio, they get a normal message.
             # if they roll less than or equal to their ratio, they get a goofy one. IDK, this made sense when I wrote it
-            if random.randRange(1,11) <= self.get_preference('goofy_ratio').value:
+            if random.randrange(1,11) <= self.get_preference('goofy_ratio').value:
                 file_name = 'files/goofyCongratsMessages'
         file = open(file_name, 'r')
         congrats_messages = file.readlines()
         file.close()
         # send a random congratulation message from the appropriate list to the appropriate channel
         message = congrats_messages[random.randrange(0,len(congrats_messages))]
-        message = message.replace('uname', self.id.displayName)
+        message = message.replace('uname', self.id.display_name)
         await chnl.send(message)
     
     def place(self, pl):
@@ -167,19 +170,22 @@ class MiniBot:
         return None
     
     # add a Result to the user that submitted it
-    def add(self, res: Result, mes: discord.Message):
+    async def add(self, res: Result, mes: discord.Message):
         # if the submitter isn't already in the system
         userID = mes.author
         if not self.is_user(userID):
             self.users.append(MbUser(userID))
 
         # add the results to the user's results
-        self.get_mb_user(userID).add(res, mes.channel) 
+        await self.get_mb_user(userID).add(res, mes.channel) 
 
-        
+    # async def write_to_file(self):
+    #     with open('file.yaml', 'w') as yaml_file:
+    #         yaml.safe_dump(self.users, yaml_file)
     
     # return Result object, if the message is a mini Result
     def check_result(self, message_content: str) -> Result:
+        # print('check result')
         # regular expressions to match the patterns
         url_pattern = r'https://www.nytimes.com/badges/games/mini.html\?d=(\d{4}-\d{2}-\d{2})&t=(\d+)'
         app_pattern = r'I solved the (\d{1,2}/\d{1,2}/\d{4}) New York Times Mini Crossword in (\d{1,2}):(\d{2})'
@@ -192,12 +198,14 @@ class MiniBot:
             date_str = url_match.group(1)
             date_format = '%Y-%m-%d'
             time = int(url_match.group(2))
+            # print('url match')
         elif app_match:
             date_str = app_match.group(1)
             date_format = '%m/%d/%Y'
             minutes = int(app_match.group(2))
             seconds = int(app_match.group(3))
             time = minutes * 60 + seconds # convert minutes and seconds to seconds
+            # print('app match')
         else:
             return None
 
@@ -206,46 +214,58 @@ class MiniBot:
 
         # create a Result object and return it
         return Result(date,time)
-    # TODO 'say' admin command, so I can make it say whatever I want, in whichever channel I choose
+    # TODO 'say' function to clean up my code
     async def run_command(self, command: Command):
         if len(command.content.split()) == 0:
             return
         command.content = command.content.lower()
+        command_zero = command.content.split()[0]
         # ------------user commands-----------------------
-        user_commands = ['no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard', 'goofy_ratio']
+        user_commands = ['no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard', 'goofy_ratio', 'help', 'h']
         if command.type == 'user':
-            if command.content.split()[0] not in user_commands:
+            user = self.get_mb_user(command.user)
+            if not user:
+                self.users.append(MbUser(command.user))
+            if command_zero not in user_commands:
                 await command.message.reply('Command not recognized')
                 return
-            if command.content.split()[0] == 'goofy_ratio' and len(command.content.split() > 1):
-                self.get_mb_user(command.user).set_preference(Preference('goofy_ratio', command.content.split()[1]))
+            if command_zero == 'goofy_ratio' and len(command.content.split()) > 1:
+                self.get_mb_user(command.user).set_preference(Preference('goofy_ratio', int(command.content.split()[1])))
             else: # it's 'no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard'
                 self.get_mb_user(command.user).set_preference(Preference(command.content.split()[0], 1))
             responses = ['Okay', 'Awesome', 'Sweet', 'Cool', 'Gotcha']
-            await command.message.reply(f'{responses[random.randrange(0,len(responses))]}, {command.user.display_name}, preference set.')
+            response = responses[random.randrange(0,len(responses))]
+            await command.message.reply(f'{response}, {command.user.display_name}, preference set.')
             return
         # ---------------admin commands--------------------------
         else:# it's an admin command
-            admin_commands = ['say']
+            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h']
+            
             if not self.per.has_permission(command.user.name, 'admin'):
                 await command.message.reply('Permission denied.')
                 return
             if command.message.reference: # if it's a reply, that means I'm running the command as the user
+                print('reference found')
                 referenced_message = await command.message.channel.fetch_message(command.message.reference.message_id)
-                self.run_command(Command('user', command.content, referenced_message.author, command.message))
+                await self.run_command(Command('user', command.content, referenced_message.author, command.message))
                 return
-            if command.content.split()[0] not in admin_commands:
+            if command_zero not in admin_commands:
                 await command.message.reply('Command not recognized')
                 return
-            if command.content.split()[0] == 'say':
+            if command_zero == 'say':
                 if not command.content.split()[1]:
                     return
                 channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
                 if channel:
-                    message = ' '.join(command.content.split()[2:]).strip() # message is everything after say <channel>
+                    message = ''.join(command.content.split()[2:]).strip() # message is everything after say <channel>
                     await channel.send(message)
+                else:
+                    await command.message.reply('channel not found')
+            if command_zero == 'leaderboard' or command_zero == 'lb':
+                await self.daily_leaderboard()
             admin_responses = ['You got it, boss', 'Sure thing, boss']
-            await command.message.reply(admin_responses[random.randrange(0,len(admin_responses))])
+            response = admin_responses[random.randrange(0,len(admin_responses))]
+            await command.message.reply(response)
 
 
             
@@ -274,7 +294,10 @@ class MiniBot:
         
         # if it's a command
         if command:
-            await self.run_command(Command('admin' if admin_command else 'user', message.content[len(command_token):], message.author, message))
+            command_type = 'admin' if admin_command else 'user'
+            content = message.content[len(command_token):]
+            author = message.author
+            await self.run_command(Command(command_type, content, author, message))
 
         
     
@@ -289,6 +312,9 @@ class MiniBot:
              await self.add(r, message)
         else:
             await self.check_command(message)
+        
+        # TODO remove this, testing
+        # await self.write_to_file()
 
     # returns a string representation of time - seconds:int -> 'm:ss'
     def format_time(time: int) -> str:
@@ -300,8 +326,12 @@ class MiniBot:
     async def daily_leaderboard(self):
         guild = discord.utils.get(client.guilds, name='Lanes and Nuttings')
         if not guild:
+            print('guild not found')
             return
         channel = discord.utils.get(guild.channels, name='puzzles')
+        if not channel:
+            print('channel not found')
+            return
         message = 'DAILY LEADERBOARD:\n'
         placings = []
         unsorted_placings = []
@@ -318,10 +348,12 @@ class MiniBot:
             # give everyone a place number
             i = 1
             while (i < len(placings)):
-                message += f'{i}. {placings[i].user.id.display_name} {self.format_time(placings[i].result.time)}\n'
+                message += f'{i}. {placings[i].user.id.display_name}    {self.format_time(placings[i].result.time)}\n'
                 placings[i].user.place(i)
                 i += 1
             await channel.send(message)
+    
+
 
 
 intents = discord.Intents.default()
@@ -330,7 +362,6 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 
 
-# TODO handle minibot so that it can be fed the client as an argument. This will probably need to be done using decorations
 # TODO handle data so that it won't be lost when disconnecting and/or restarting
 # TODO handle global object properly
 # global object
@@ -343,13 +374,13 @@ async def on_ready():
 
 # Event handler for messages
 @client.event
-async def on_message(self, message):
+async def on_message(message):
         # Don't respond to your own message
         if message.author == client.user:
             return
         
         # send the message to the bot 
-        bot.feed(message)
+        await bot.feed(message)
 
 # Schedule the task to run every day at 8 PM
 async def daily_scheduler():
