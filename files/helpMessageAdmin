@@ -1,0 +1,5 @@
+to run a command for someone, reply to them 'minibot_admin' followed by the command
+
+say channel message
+
+react channel messageID emoji

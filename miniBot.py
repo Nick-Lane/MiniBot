@@ -4,6 +4,7 @@ import re
 import random
 import asyncio
 import unicodedata
+import emoji
 
 # result class
 #     date: result date
@@ -210,11 +211,6 @@ class MiniBot:
         # create a Result object and return it
         return Result(date,time)
     
-    def is_emoji(self, character: str):
-        # Check if the character is in the emoji Unicode range
-        emoji_property = unicodedata.name(character, None)
-        return emoji_property is not None and "EMOJI" in emoji_property
-    
     # at this point, command.content doesn't contain 'minibot' or anything like that
     async def run_command(self, command: Command):
         if len(command.content.split()) == 0:
@@ -281,13 +277,18 @@ class MiniBot:
                 file.close()
                 await command.message.reply(help_message)
             if command_zero == 'react':
-                if (not command.content.split()[1]) or (not command.content.split()[2]):# if 'react' isn't followed by 2 strings, do nothing
+                channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
+                if not channel:
+                    command.message.reply('not channel')
                     return
-                if not MiniBot.is_emoji(command.content.split()[2]):
+                if (not command.content.split()[1]) or (not command.content.split()[2]) or (not command.content.split()[3]):# if 'react' isn't followed by 2 strings, do nothing
+                    return
+                if not emoji.is_emoji(command.content.split()[3]):
+                    command.message.reply('not emoji')
                     return
                 try:
-                    message_to_react = await channel.fetch_message(int(command.content.split()[1]))
-                    await message_to_react.add_reaction(command.content.split()[2])
+                    message_to_react = await channel.fetch_message(int(command.content.split()[2]))
+                    await message_to_react.add_reaction(command.content.split()[3])
                 except discord.errors.NotFound:
                     command.message.reply('discord.errors.NotFound')
             admin_responses = ['You got it, boss', 'Sure thing, boss']
