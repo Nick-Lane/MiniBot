@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, date
 import re
 import random
 import asyncio
-import yaml
 
 
 # result class
