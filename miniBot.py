@@ -72,7 +72,6 @@ class MbUser:
         if preference.type.startswith('yes'):
             self.clear_preference('no' + preference.type[3:])
             return
-        # print(type(preference.value))
         if preference.type == 'goofy_ratio':
             if preference.value > 10:
                 preference.value = 10
@@ -185,7 +184,6 @@ class MiniBot:
     
     # return Result object, if the message is a mini Result
     def check_result(self, message_content: str) -> Result:
-        # print('check result')
         # regular expressions to match the patterns
         url_pattern = r'https://www.nytimes.com/badges/games/mini.html\?d=(\d{4}-\d{2}-\d{2})&t=(\d+)'
         app_pattern = r'I solved the (\d{1,2}/\d{1,2}/\d{4}) New York Times Mini Crossword in (\d{1,2}):(\d{2})'
@@ -198,14 +196,12 @@ class MiniBot:
             date_str = url_match.group(1)
             date_format = '%Y-%m-%d'
             time = int(url_match.group(2))
-            # print('url match')
         elif app_match:
             date_str = app_match.group(1)
             date_format = '%m/%d/%Y'
             minutes = int(app_match.group(2))
             seconds = int(app_match.group(3))
             time = minutes * 60 + seconds # convert minutes and seconds to seconds
-            # print('app match')
         else:
             return None
 
@@ -214,10 +210,12 @@ class MiniBot:
 
         # create a Result object and return it
         return Result(date,time)
-    # TODO 'say' function to clean up my code
+    
+    # at this point, command.content doesn't contain 'minibot' or anything like that
     async def run_command(self, command: Command):
         if len(command.content.split()) == 0:
             return
+        command_content_original = command.content
         command.content = command.content.lower()
         command_zero = command.content.split()[0]
         # ------------user commands-----------------------
@@ -228,9 +226,17 @@ class MiniBot:
                 self.users.append(MbUser(command.user))
             if command_zero not in user_commands:
                 await command.message.reply('Command not recognized')
+                await self.run_command(Command('user', 'help', user, command.message))
                 return
             if command_zero == 'goofy_ratio' and len(command.content.split()) > 1:
                 self.get_mb_user(command.user).set_preference(Preference('goofy_ratio', int(command.content.split()[1])))
+            elif command_zero == 'help' or command_zero == 'h':
+                file = await open('files/helpMessage', 'r')
+                if not file:
+                    return
+                help_message = file.read()
+                file.close()
+                await command.message.reply(help_message)
             else: # it's 'no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard'
                 self.get_mb_user(command.user).set_preference(Preference(command.content.split()[0], 1))
             responses = ['Okay', 'Awesome', 'Sweet', 'Cool', 'Gotcha']
@@ -245,7 +251,6 @@ class MiniBot:
                 await command.message.reply('Permission denied.')
                 return
             if command.message.reference: # if it's a reply, that means I'm running the command as the user
-                print('reference found')
                 referenced_message = await command.message.channel.fetch_message(command.message.reference.message_id)
                 await self.run_command(Command('user', command.content, referenced_message.author, command.message))
                 return
@@ -257,12 +262,19 @@ class MiniBot:
                     return
                 channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
                 if channel:
-                    message = ''.join(command.content.split()[2:]).strip() # message is everything after say <channel>
+                    message = ''.join(command_content_original.split()[2:]).strip() # message is everything after say <channel>
                     await channel.send(message)
                 else:
                     await command.message.reply('channel not found')
             if command_zero == 'leaderboard' or command_zero == 'lb':
                 await self.daily_leaderboard()
+            if command_zero == 'help' or command_zero == 'h':
+                file = await open('files/helpMessageAdmin', 'r')
+                if not file:
+                    return
+                help_message = file.read()
+                file.close()
+                await command.message.reply(help_message)
             admin_responses = ['You got it, boss', 'Sure thing, boss']
             response = admin_responses[random.randrange(0,len(admin_responses))]
             await command.message.reply(response)
@@ -348,7 +360,7 @@ class MiniBot:
             # give everyone a place number
             i = 1
             while (i < len(placings)):
-                message += f'{i}. {placings[i].user.id.display_name}    {self.format_time(placings[i].result.time)}\n'
+                message += f'{i}. {placings[i].user.id.display_name}    {MiniBot.format_time(placings[i].result.time)}\n'
                 placings[i].user.place(i)
                 i += 1
             await channel.send(message)
@@ -371,6 +383,7 @@ bot = MiniBot(client) #TODO change so it starts as none, then in on_ready, initi
 @client.event
 async def on_ready():
     print(f'Logged in as {client.user.name}')
+    await daily_scheduler()
 
 # Event handler for messages
 @client.event
@@ -384,18 +397,16 @@ async def on_message(message):
 
 # Schedule the task to run every day at 8 PM
 async def daily_scheduler():
-    while True:
-        # Get current time
-        now = datetime.now()
-        # Calculate the time until 8 PM
-        next_time = datetime(now.year, now.month, now.day, 20, 0, 0) - now
-        # If it's already past 8 PM, schedule the task for the next day
-        if next_time.total_seconds() < 0:
-            next_time += timedelta(days=1)
-        # Sleep until it's time for the task
-        await asyncio.sleep(next_time.total_seconds())
-        # Execute the task
-        await bot.daily_leaderboard()
+    while not client.is_closed():
+        # Get current date and time
+        current_time = datetime.now()
+        
+        # Check if it's 8pm
+        if current_time.strftime('%H:%M') == '20:00':
+            await bot.daily_leaderboard()
+        
+        # Wait for 1 minute before checking again
+        await asyncio.sleep(60)
 
 
 # bot's token
@@ -406,4 +417,5 @@ token_file.close()
 
 
 # Run the bot
+# client.loop.create_task(daily_scheduler())
 client.run(token)
