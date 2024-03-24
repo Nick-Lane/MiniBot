@@ -295,10 +295,10 @@ class MiniBot:
             if command_zero == 'reply':
                 channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
                 if not channel:
-                    command.message.reply('not channel')
+                    await command.message.reply('not channel')
                     return
                 if (not command.content.split()[1]) or (not command.content.split()[2]) or (not command.content.split()[3]):# if 'react' isn't followed by 2 strings, do nothing
-                    command.message.reply('not enough args. reply channel messageID newMessage')
+                    await command.message.reply('not enough args. reply channel messageID newMessage')
                     return
                 try:
                     message_to_reply = await channel.fetch_message(int(command.content.split()[2]))
