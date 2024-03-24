@@ -87,7 +87,7 @@ class MbUser:
     def get_preferences_string(self):
         string = self.name
         for preference in self.preferences:
-            string += ' ' + preference.type + ':' + preference.value
+            string += ' ' + str(preference)
         return string
 
     async def congratulate(self, chnl: discord.TextChannel):
@@ -221,7 +221,7 @@ class MiniBot:
     # guild ids:
     #   lanes and nuttings: 1177377997993549824
     #   test: 1213896278614745158
-    async def read_preferences(self):
+    def read_preferences(self):
         guild = client.get_guild(1213896278614745158) # TODO change this to lanes and nuttings
         file = open('files/preferences', 'r')
         file_contents = file.readlines()
@@ -252,12 +252,31 @@ class MiniBot:
             
             
     #TODO write preferences
+    def write_preferences(self):
+        file = open('files/preferences', 'r')
+        file_contents = file.readlines()
+        file.close()
+        # get rid of everything except the comments section
+        file_contents = [line for line in file_contents if line.startswith('#')]
+        for user in self.users:
+            string = user.get_preferences_string() + '\n'
+            # if they actually have preferences
+            if len(string.split()) > 1:
+                file_contents.append(string)
+        
+        file = open('files/preferences', 'w')
+        file.writelines(file_contents)
+        file.close()
+
     #TODO read placings
     #TODO write placings
     #TODO read results
     #TODO write results
     #TODO read all (just calls read placings, results, and preferences)
     #TODO write all (just calls write placings, results, and preferences)
+        
+    def read_in_info(self):
+        self.read_preferences()
     
     #TODO run command, where I can tell the bot to run a bash command, and it prints out the results
     # at this point, command.content doesn't contain 'minibot' or anything like that
@@ -292,6 +311,7 @@ class MiniBot:
             responses = ['Okay', 'Awesome', 'Sweet', 'Cool', 'Gotcha']
             response = responses[random.randrange(0,len(responses))]
             await command.message.reply(f'{response}, {command.user.display_name}, preference set.')
+            self.write_preferences()
             return
         # ---------------admin commands--------------------------
         else:# it's an admin command
