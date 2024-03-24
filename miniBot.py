@@ -225,8 +225,8 @@ class MiniBot:
             if not user:
                 self.users.append(MbUser(command.user))
             if command_zero not in user_commands:
-                await command.message.reply('Command not recognized')
-                await self.run_command(Command('user', 'help', user, command.message))
+                # await command.message.reply('Command not recognized')
+                # await self.run_command(Command('user', 'help', user, command.message))
                 return
             if command_zero == 'goofy_ratio' and len(command.content.split()) > 1:
                 self.get_mb_user(command.user).set_preference(Preference('goofy_ratio', int(command.content.split()[1])))
