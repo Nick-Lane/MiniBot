@@ -4,10 +4,12 @@ OR
 mb <command> <value>
 
 commands:
+    help
+        prints this message
     no_congrats
         disables congrats messages
-    yes_congrats
-        enables congrats messages (enabled by default)
+    yes_congrats (default)
+        enables congrats messages
     no_leaderboard
         will leave you off the daily leaderboard
     yes_leaderboard (default)

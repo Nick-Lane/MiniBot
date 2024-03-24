@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, date
 import re
 import random
 import asyncio
-import unicodedata
 import emoji
 
 # result class
@@ -47,6 +46,7 @@ class Command:
 #     times_placed: list of number of times placed 1st, 2nd, etc. index 0 will be empty so index 1 is 1st, etc.
 class MbUser:
     def __init__(self, id: discord.User):
+        self.name = id.name # name is their username
         self.id = id # id is a discord user
         self.results = [] # list of type Result
         self.preferences = [] # list of type Preference
@@ -83,6 +83,12 @@ class MbUser:
         # if they already have the preference, remove it
         self.clear_preference(preference.type)
         self.preferences.append(preference)
+
+    def get_preferences_string(self):
+        string = self.name
+        for preference in self.preferences:
+            string += ' ' + preference.type + ':' + preference.value
+        return string
 
     async def congratulate(self, chnl: discord.TextChannel):
         if self.get_preference('no_congrats'):
@@ -156,7 +162,7 @@ class MiniBot:
         self.per = Permissions('files/permissions')
         self.client = client
     
-    def is_user(self, userID):
+    def is_user(self, userID: discord.User):
         for u in self.users:
             if u.id == userID:
                 return True
@@ -211,6 +217,49 @@ class MiniBot:
         # create a Result object and return it
         return Result(date,time)
     
+    #TODO read preferences
+    # guild ids:
+    #   lanes and nuttings: 1177377997993549824
+    #   test: 1213896278614745158
+    async def read_preferences(self):
+        guild = client.get_guild(1213896278614745158) # TODO change this to lanes and nuttings
+        file = open('files/preferences', 'r')
+        file_contents = file.readlines()
+        file.close()
+        for line in file_contents:
+            # if the line is a comment, do nothing
+            if line.startswith('#'):
+                continue
+            words = line.split()
+            # if it's an empty line, do nothing
+            if len(words) == 0:
+                continue
+            name = words[0]
+            preferences = words[1:]
+            # get the discord user from their name
+            duser = discord.utils.get(guild.members, name=name)
+            # if we can't find the discord user
+            if not duser:
+                print('no user found for ' + name)
+                continue
+            # add them to the system if they're not already in it
+            my_user = self.get_mb_user(duser)
+            if not my_user:
+                self.users.append(MbUser(my_user))
+            for preference in preferences:
+                pref_tokens = preference.split(':')
+                my_user.set_preference(Preference(pref_tokens[0], int(pref_tokens[1])))
+            
+            
+    #TODO write preferences
+    #TODO read placings
+    #TODO write placings
+    #TODO read results
+    #TODO write results
+    #TODO read all (just calls read placings, results, and preferences)
+    #TODO write all (just calls write placings, results, and preferences)
+    
+    #TODO run command, where I can tell the bot to run a bash command, and it prints out the results
     # at this point, command.content doesn't contain 'minibot' or anything like that
     async def run_command(self, command: Command):
         if len(command.content.split()) == 0:
@@ -443,7 +492,7 @@ async def daily_scheduler():
 
 
 # bot's token
-token_file = open('files/token', 'r')
+token_file = open('files/testToken', 'r') # TODO change this back
 token = token_file.read()
 token_file.close()
 
