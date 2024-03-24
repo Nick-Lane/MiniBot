@@ -231,12 +231,13 @@ class MiniBot:
             if command_zero == 'goofy_ratio' and len(command.content.split()) > 1:
                 self.get_mb_user(command.user).set_preference(Preference('goofy_ratio', int(command.content.split()[1])))
             elif command_zero == 'help' or command_zero == 'h':
-                file = await open('files/helpMessage', 'r')
+                file = open('files/helpMessage', 'r')
                 if not file:
                     return
                 help_message = file.read()
                 file.close()
                 await command.message.reply(help_message)
+                return
             else: # it's 'no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard'
                 self.get_mb_user(command.user).set_preference(Preference(command.content.split()[0], 1))
             responses = ['Okay', 'Awesome', 'Sweet', 'Cool', 'Gotcha']
@@ -270,12 +271,13 @@ class MiniBot:
             if command_zero == 'leaderboard' or command_zero == 'lb':
                 await self.daily_leaderboard()
             if command_zero == 'help' or command_zero == 'h':
-                file = await open('files/helpMessageAdmin', 'r')
+                file = open('files/helpMessageAdmin', 'r')
                 if not file:
                     return
                 help_message = file.read()
                 file.close()
                 await command.message.reply(help_message)
+                return
             if command_zero == 'react':
                 channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
                 if not channel:
