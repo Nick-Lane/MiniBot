@@ -261,7 +261,8 @@ class MiniBot:
                     return
                 channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
                 if channel:
-                    message = command_content_original[12:] # message is everything after say <channel>
+                    say_channel_length = len(command.split()[0]) + len(command.split()[1]) + 2
+                    message = command_content_original[say_channel_length:] # message is everything after say <channel>
                     await channel.send(message)
                 else:
                     await command.message.reply('channel not found')
