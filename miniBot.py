@@ -245,7 +245,7 @@ class MiniBot:
             return
         # ---------------admin commands--------------------------
         else:# it's an admin command
-            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h', 'react']
+            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h', 'react', 'reply']
             
             if not self.per.has_permission(command.user.name, 'admin'):
                 await command.message.reply('Permission denied.')
@@ -279,18 +279,33 @@ class MiniBot:
             if command_zero == 'react':
                 channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
                 if not channel:
-                    command.message.reply('not channel')
+                    await command.message.reply('not channel')
                     return
                 if (not command.content.split()[1]) or (not command.content.split()[2]) or (not command.content.split()[3]):# if 'react' isn't followed by 2 strings, do nothing
+                    await command.message.reply('not enough args. react channel messageID emoji')
                     return
                 if not emoji.is_emoji(command.content.split()[3]):
-                    command.message.reply('not emoji')
+                    await command.message.reply('not emoji')
                     return
                 try:
                     message_to_react = await channel.fetch_message(int(command.content.split()[2]))
                     await message_to_react.add_reaction(command.content.split()[3])
                 except discord.errors.NotFound:
-                    command.message.reply('discord.errors.NotFound')
+                    await command.message.reply('discord.errors.NotFound')
+            if command_zero == 'reply':
+                channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
+                if not channel:
+                    command.message.reply('not channel')
+                    return
+                if (not command.content.split()[1]) or (not command.content.split()[2]) or (not command.content.split()[3]):# if 'react' isn't followed by 2 strings, do nothing
+                    command.message.reply('not enough args. reply channel messageID newMessage')
+                    return
+                try:
+                    message_to_reply = await channel.fetch_message(int(command.content.split()[2]))
+                    beginning_length = len(command.content.split()[0]) + len(command.content.split()[1]) + len(command.content.split()[2]) + 3
+                    await message_to_reply.reply(command.message.content[beginning_length:])
+                except discord.errors.NotFound:
+                    await command.message.reply('discord.errors.NotFound')
             admin_responses = ['You got it, boss', 'Sure thing, boss']
             response = admin_responses[random.randrange(0,len(admin_responses))]
             await command.message.reply(response)

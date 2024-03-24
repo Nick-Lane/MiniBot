@@ -3,3 +3,5 @@ to run a command for someone, reply to them 'minibot_admin' followed by the comm
 say channel message
 
 react channel messageID emoji
+
+reply channel messageID message
