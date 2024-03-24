@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, date
 import re
 import random
 import asyncio
-
+import unicodedata
 
 # result class
 #     date: result date
@@ -210,6 +210,11 @@ class MiniBot:
         # create a Result object and return it
         return Result(date,time)
     
+    def is_emoji(self, character: str):
+        # Check if the character is in the emoji Unicode range
+        emoji_property = unicodedata.name(character, None)
+        return emoji_property is not None and "EMOJI" in emoji_property
+    
     # at this point, command.content doesn't contain 'minibot' or anything like that
     async def run_command(self, command: Command):
         if len(command.content.split()) == 0:
@@ -244,7 +249,7 @@ class MiniBot:
             return
         # ---------------admin commands--------------------------
         else:# it's an admin command
-            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h']
+            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h', 'react']
             
             if not self.per.has_permission(command.user.name, 'admin'):
                 await command.message.reply('Permission denied.')
@@ -261,7 +266,7 @@ class MiniBot:
                     return
                 channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
                 if channel:
-                    say_channel_length = len(command.split()[0]) + len(command.split()[1]) + 2
+                    say_channel_length = len(command.content.split()[0]) + len(command.content.split()[1]) + 2
                     message = command_content_original[say_channel_length:] # message is everything after say <channel>
                     await channel.send(message)
                 else:
@@ -275,6 +280,16 @@ class MiniBot:
                 help_message = file.read()
                 file.close()
                 await command.message.reply(help_message)
+            if command_zero == 'react':
+                if (not command.content.split()[1]) or (not command.content.split()[2]):# if 'react' isn't followed by 2 strings, do nothing
+                    return
+                if not MiniBot.is_emoji(command.content.split()[2]):
+                    return
+                try:
+                    message_to_react = await channel.fetch_message(int(command.content.split()[1]))
+                    await message_to_react.add_reaction(command.content.split()[2])
+                except discord.errors.NotFound:
+                    command.message.reply('discord.errors.NotFound')
             admin_responses = ['You got it, boss', 'Sure thing, boss']
             response = admin_responses[random.randrange(0,len(admin_responses))]
             await command.message.reply(response)
