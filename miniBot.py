@@ -217,7 +217,7 @@ class MiniBot:
         # create a Result object and return it
         return Result(date,time)
     
-    #TODO read preferences
+    #TODO make this happen on startup, possibly in on_ready
     # guild ids:
     #   lanes and nuttings: 1177377997993549824
     #   test: 1213896278614745158
