@@ -5,3 +5,5 @@ say channel message
 react channel messageID emoji
 
 reply channel messageID message
+
+read_info | ri

@@ -4,7 +4,7 @@ OR
 mb <command> <value>
 
 commands:
-    help
+    help | h
         prints this message
     no_congrats
         disables congrats messages
@@ -20,5 +20,7 @@ commands:
         will put you back on the rekkening
     goofy_ratio
         on a scale of 1-10, how often do you want to receive goofy messages, rather than the normal ones? Default: 0
+    my_preferences | mp
+        responds with your preferences
 
 Alternatively, just tell Nick what you want, and he'll run the command for you.

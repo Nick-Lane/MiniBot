@@ -222,7 +222,10 @@ class MiniBot:
     #   lanes and nuttings: 1177377997993549824
     #   test: 1213896278614745158
     def read_preferences(self):
-        guild = client.get_guild(1213896278614745158) # TODO change this to lanes and nuttings
+        guild = self.client.get_guild(1177377997993549824)
+        if not guild:
+            print('not guild')
+            return 1
         file = open('files/preferences', 'r')
         file_contents = file.readlines()
         file.close()
@@ -245,13 +248,13 @@ class MiniBot:
             # add them to the system if they're not already in it
             my_user = self.get_mb_user(duser)
             if not my_user:
-                self.users.append(MbUser(my_user))
+                my_user = MbUser(duser)
+                self.users.append(my_user)
             for preference in preferences:
                 pref_tokens = preference.split(':')
                 my_user.set_preference(Preference(pref_tokens[0], int(pref_tokens[1])))
             
             
-    #TODO write preferences
     def write_preferences(self):
         file = open('files/preferences', 'r')
         file_contents = file.readlines()
@@ -281,13 +284,14 @@ class MiniBot:
     #TODO run command, where I can tell the bot to run a bash command, and it prints out the results
     # at this point, command.content doesn't contain 'minibot' or anything like that
     async def run_command(self, command: Command):
+        setting_preference = False
         if len(command.content.split()) == 0:
             return
         command_content_original = command.content
         command.content = command.content.lower()
         command_zero = command.content.split()[0]
         # ------------user commands-----------------------
-        user_commands = ['no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard', 'goofy_ratio', 'help', 'h']
+        user_commands = ['no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard', 'goofy_ratio', 'help', 'h', 'my_preferences', 'mp']
         if command.type == 'user':
             user = self.get_mb_user(command.user)
             if not user:
@@ -297,6 +301,7 @@ class MiniBot:
                 # await self.run_command(Command('user', 'help', user, command.message))
                 return
             if command_zero == 'goofy_ratio' and len(command.content.split()) > 1:
+                setting_preference = True
                 self.get_mb_user(command.user).set_preference(Preference('goofy_ratio', int(command.content.split()[1])))
             elif command_zero == 'help' or command_zero == 'h':
                 file = open('files/helpMessage', 'r')
@@ -306,16 +311,21 @@ class MiniBot:
                 file.close()
                 await command.message.reply(help_message)
                 return
+            elif command_zero == 'my_preferences' or command_zero == 'mp':
+                preferences_string = self.get_mb_user(command.user).get_preferences_string()
+                await command.message.reply(preferences_string)
             else: # it's 'no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard'
+                setting_preference = True
                 self.get_mb_user(command.user).set_preference(Preference(command.content.split()[0], 1))
             responses = ['Okay', 'Awesome', 'Sweet', 'Cool', 'Gotcha']
             response = responses[random.randrange(0,len(responses))]
-            await command.message.reply(f'{response}, {command.user.display_name}, preference set.')
-            self.write_preferences()
+            if setting_preference:
+                await command.message.reply(f'{response}, {command.user.display_name}, preference set.')
+                self.write_preferences()
             return
         # ---------------admin commands--------------------------
         else:# it's an admin command
-            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h', 'react', 'reply']
+            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h', 'react', 'reply', 'read_info', 'ri']
             
             if not self.per.has_permission(command.user.name, 'admin'):
                 await command.message.reply('Permission denied.')
@@ -377,6 +387,8 @@ class MiniBot:
                     await message_to_reply.reply(command.message.content[beginning_length:])
                 except discord.errors.NotFound:
                     await command.message.reply('discord.errors.NotFound')
+            if command_zero == 'read_info' or command_zero == 'ri':
+                self.read_in_info()
             admin_responses = ['You got it, boss', 'Sure thing, boss']
             response = admin_responses[random.randrange(0,len(admin_responses))]
             await command.message.reply(response)
@@ -427,15 +439,18 @@ class MiniBot:
         else:
             await self.check_command(message)
         
-        # TODO remove this, testing
-        # await self.write_to_file()
 
     # returns a string representation of time - seconds:int -> 'm:ss'
     def format_time(time: int) -> str:
         if time < 60:
             return str(time)
         else:
-            return f'{time // 60}:{time % 60}'
+            minutes = time // 60
+            seconds = time % 60
+            minutes_string = str(minutes)
+            zero = '0' if seconds < 10 else ''
+            seconds_string = zero + str(seconds)
+            return minutes_string + ':' + seconds_string
         
     async def daily_leaderboard(self):
         guild = discord.utils.get(client.guilds, name='Lanes and Nuttings')
@@ -473,13 +488,14 @@ class MiniBot:
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
+intents.members = True
 client = discord.Client(intents=intents)
 
 
 # TODO handle data so that it won't be lost when disconnecting and/or restarting
 # TODO handle global object properly
 # global object
-bot = MiniBot(client) #TODO change so it starts as none, then in on_ready, initialize so it can read in JSON and remember everyone's info
+bot = MiniBot(client)
 
 # Event handler for when the bot is ready
 @client.event
@@ -512,7 +528,7 @@ async def daily_scheduler():
 
 
 # bot's token
-token_file = open('files/testToken', 'r') # TODO change this back
+token_file = open('files/token', 'r')
 token = token_file.read()
 token_file.close()
 
