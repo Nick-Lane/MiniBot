@@ -285,11 +285,12 @@ class MiniBot:
     # at this point, command.content doesn't contain 'minibot' or anything like that
     async def run_command(self, command: Command):
         setting_preference = False
-        if len(command.content.split()) == 0:
+        args = args
+        if len(args) == 0:
             return
         command_content_original = command.content
         command.content = command.content.lower()
-        command_zero = command.content.split()[0]
+        command_zero = args[0]
         # ------------user commands-----------------------
         user_commands = ['no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard', 'goofy_ratio', 'help', 'h', 'my_preferences', 'mp']
         if command.type == 'user':
@@ -300,9 +301,9 @@ class MiniBot:
                 # await command.message.reply('Command not recognized')
                 # await self.run_command(Command('user', 'help', user, command.message))
                 return
-            if command_zero == 'goofy_ratio' and len(command.content.split()) > 1:
+            if command_zero == 'goofy_ratio' and len(args) > 1:
                 setting_preference = True
-                self.get_mb_user(command.user).set_preference(Preference('goofy_ratio', int(command.content.split()[1])))
+                self.get_mb_user(command.user).set_preference(Preference('goofy_ratio', int(args[1])))
             elif command_zero == 'help' or command_zero == 'h':
                 file = open('files/helpMessage', 'r')
                 if not file:
@@ -316,7 +317,7 @@ class MiniBot:
                 await command.message.reply(preferences_string)
             else: # it's 'no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard'
                 setting_preference = True
-                self.get_mb_user(command.user).set_preference(Preference(command.content.split()[0], 1))
+                self.get_mb_user(command.user).set_preference(Preference(args[0], 1))
             responses = ['Okay', 'Awesome', 'Sweet', 'Cool', 'Gotcha']
             response = responses[random.randrange(0,len(responses))]
             if setting_preference:
@@ -325,11 +326,39 @@ class MiniBot:
             return
         # ---------------admin commands--------------------------
         else:# it's an admin command
-            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h', 'react', 'reply', 'read_info', 'ri']
+            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h', 'react', 'reply', 'read_info', 'ri', 'add_time', 'at']
             
             if not self.per.has_permission(command.user.name, 'admin'):
                 await command.message.reply('Permission denied.')
                 return
+            if command_zero == 'add_time' or command_zero == 'at':
+                if len(args) < 4:
+                    await command.message.reply('usage: add_time person day time')
+                    return
+                duser = discord.utils.get(guild.members, name=args[1])
+                if not duser:
+                    await command.message.reply('usage: add_time person day time')
+                    return
+                my_user = self.get_mb_user(duser)
+                if not my_user:
+                    self.users.append(MbUser(duser))
+                if args[2].lower() == 'today':
+                    day = date.today()
+                elif args[2].lower() == 'tomorrow':
+                    day = date.today() + timedelta(1)
+                else:
+                    await command.message.reply('usage: add_time person day time')
+                    return
+                #TODO finish this - read in time and add it
+                try:
+                    if ":" in args[3]:
+                        minutes = args[3].split(':')[0]
+                        seconds = args[3].split(':')[1]
+                    else:
+                        seconds = int(args[3])
+                except:
+                    await command.message.reply('usage: add_time person day time')
+                    return
             if command.message.reference: # if it's a reply, that means I'm running the command as the user
                 referenced_message = await command.message.channel.fetch_message(command.message.reference.message_id)
                 await self.run_command(Command('user', command.content, referenced_message.author, command.message))
@@ -338,11 +367,11 @@ class MiniBot:
                 await command.message.reply('Command not recognized')
                 return
             if command_zero == 'say':
-                if not command.content.split()[1]:
+                if not args[1]:
                     return
-                channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
+                channel = discord.utils.get(command.message.guild.channels, name=args[1])
                 if channel:
-                    say_channel_length = len(command.content.split()[0]) + len(command.content.split()[1]) + 2
+                    say_channel_length = len(args[0]) + len(args[1]) + 2
                     message = command_content_original[say_channel_length:] # message is everything after say <channel>
                     await channel.send(message)
                 else:
@@ -358,32 +387,32 @@ class MiniBot:
                 await command.message.reply(help_message)
                 return
             if command_zero == 'react':
-                channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
+                channel = discord.utils.get(command.message.guild.channels, name=args[1])
                 if not channel:
                     await command.message.reply('not channel')
                     return
-                if (not command.content.split()[1]) or (not command.content.split()[2]) or (not command.content.split()[3]):# if 'react' isn't followed by 2 strings, do nothing
+                if (not args[1]) or (not args[2]) or (not args[3]):# if 'react' isn't followed by 2 strings, do nothing
                     await command.message.reply('not enough args. react channel messageID emoji')
                     return
-                if not emoji.is_emoji(command.content.split()[3]):
+                if not emoji.is_emoji(args[3]):
                     await command.message.reply('not emoji')
                     return
                 try:
-                    message_to_react = await channel.fetch_message(int(command.content.split()[2]))
-                    await message_to_react.add_reaction(command.content.split()[3])
+                    message_to_react = await channel.fetch_message(int(args[2]))
+                    await message_to_react.add_reaction(args[3])
                 except discord.errors.NotFound:
                     await command.message.reply('discord.errors.NotFound')
             if command_zero == 'reply':
-                channel = discord.utils.get(command.message.guild.channels, name=command.content.split()[1])
+                channel = discord.utils.get(command.message.guild.channels, name=args[1])
                 if not channel:
                     await command.message.reply('not channel')
                     return
-                if (not command.content.split()[1]) or (not command.content.split()[2]) or (not command.content.split()[3]):# if 'react' isn't followed by 2 strings, do nothing
+                if (not args[1]) or (not args[2]) or (not args[3]):# if 'react' isn't followed by 2 strings, do nothing
                     await command.message.reply('not enough args. reply channel messageID newMessage')
                     return
                 try:
-                    message_to_reply = await channel.fetch_message(int(command.content.split()[2]))
-                    beginning_length = len(command.content.split()[0]) + len(command.content.split()[1]) + len(command.content.split()[2]) + 3
+                    message_to_reply = await channel.fetch_message(int(args[2]))
+                    beginning_length = len(args[0]) + len(args[1]) + len(args[2]) + 3
                     await message_to_reply.reply(command.message.content[beginning_length:])
                 except discord.errors.NotFound:
                     await command.message.reply('discord.errors.NotFound')
@@ -451,9 +480,12 @@ class MiniBot:
             zero = '0' if seconds < 10 else ''
             seconds_string = zero + str(seconds)
             return minutes_string + ':' + seconds_string
-        
+
+    # guild ids:
+    #   lanes and nuttings: 1177377997993549824
+    #   test: 1213896278614745158        
     async def daily_leaderboard(self):
-        guild = discord.utils.get(client.guilds, name='Lanes and Nuttings')
+        guild = self.client.get_guild(1177377997993549824)
         if not guild:
             print('guild not found')
             return
@@ -528,7 +560,7 @@ async def daily_scheduler():
 
 
 # bot's token
-token_file = open('files/token', 'r')
+token_file = open('files/testToken', 'r')# TODO change back
 token = token_file.read()
 token_file.close()
 
