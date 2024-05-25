@@ -335,7 +335,7 @@ class MiniBot:
                 if len(args) < 4:
                     await command.message.reply('usage: add_time person day time')
                     return
-                duser = discord.utils.get(guild.members, name=args[1])
+                duser = discord.utils.get(message.guild.members, name=args[1])
                 if not duser:
                     await command.message.reply('usage: add_time person day time')
                     return
@@ -349,16 +349,17 @@ class MiniBot:
                 else:
                     await command.message.reply('usage: add_time person day time')
                     return
-                #TODO finish this - read in time and add it
+                time = -1
                 try:
                     if ":" in args[3]:
                         minutes = args[3].split(':')[0]
                         seconds = args[3].split(':')[1]
                     else:
-                        seconds = int(args[3])
+                        time = int(args[3])
                 except:
                     await command.message.reply('usage: add_time person day time')
                     return
+                
             if command.message.reference: # if it's a reply, that means I'm running the command as the user
                 referenced_message = await command.message.channel.fetch_message(command.message.reference.message_id)
                 await self.run_command(Command('user', command.content, referenced_message.author, command.message))
