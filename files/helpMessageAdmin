@@ -7,3 +7,5 @@ react channel messageID emoji
 reply channel messageID message
 
 read_info | ri
+
+add_time | at username today | tomorrow add_time

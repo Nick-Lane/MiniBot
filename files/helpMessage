@@ -22,5 +22,7 @@ commands:
         on a scale of 1-10, how often do you want to receive goofy messages, rather than the normal ones? Default: 0
     my_preferences | mp
         responds with your preferences
+    my_times | mt
+        responds with a list of your most recent times
 
 Alternatively, just tell Nick what you want, and he'll run the command for you.

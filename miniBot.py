@@ -119,6 +119,13 @@ class MbUser:
             if r.date == date.today():
                 return r
         return None
+    
+    def get_results_string(self):
+        results_string = ''
+        for r in self.results:
+            results_string += str(r)
+            results_string += '\n'
+        return results_string
 
 # placing class for leaderboard
     # user: MbUser
@@ -285,14 +292,14 @@ class MiniBot:
     # at this point, command.content doesn't contain 'minibot' or anything like that
     async def run_command(self, command: Command):
         setting_preference = False
-        args = args
+        args = command.content.split()
         if len(args) == 0:
             return
         command_content_original = command.content
         command.content = command.content.lower()
         command_zero = args[0]
         # ------------user commands-----------------------
-        user_commands = ['no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard', 'goofy_ratio', 'help', 'h', 'my_preferences', 'mp']
+        user_commands = ['no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard', 'goofy_ratio', 'help', 'h', 'my_preferences', 'mp', 'my_times', 'mt']
         if command.type == 'user':
             user = self.get_mb_user(command.user)
             if not user:
@@ -300,6 +307,9 @@ class MiniBot:
             if command_zero not in user_commands:
                 # await command.message.reply('Command not recognized')
                 # await self.run_command(Command('user', 'help', user, command.message))
+                return
+            if command_zero == 'my_times' or command_zero == 'mt':
+                await command.message.reply(user.get_results_string())
                 return
             if command_zero == 'goofy_ratio' and len(args) > 1:
                 setting_preference = True
@@ -335,7 +345,7 @@ class MiniBot:
                 if len(args) < 4:
                     await command.message.reply('usage: add_time person day time')
                     return
-                duser = discord.utils.get(message.guild.members, name=args[1])
+                duser = discord.utils.get(command.message.guild.members, name=args[1])
                 if not duser:
                     await command.message.reply('usage: add_time person day time')
                     return
@@ -354,11 +364,13 @@ class MiniBot:
                     if ":" in args[3]:
                         minutes = args[3].split(':')[0]
                         seconds = args[3].split(':')[1]
+                        time = (int(minutes) * 60) + int(seconds)
                     else:
                         time = int(args[3])
                 except:
                     await command.message.reply('usage: add_time person day time')
                     return
+                await my_user.add(Result(day, time), command.message.channel)
                 
             if command.message.reference: # if it's a reply, that means I'm running the command as the user
                 referenced_message = await command.message.channel.fetch_message(command.message.reference.message_id)
@@ -562,6 +574,7 @@ async def daily_scheduler():
 
 # bot's token
 token_file = open('files/testToken', 'r')# TODO change back
+# token_file = open('files/token', 'r')
 token = token_file.read()
 token_file.close()
 
