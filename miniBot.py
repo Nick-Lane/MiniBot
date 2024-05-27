@@ -13,7 +13,7 @@ class Result:
         self.date = date
         self.time = time
     def __str__(self):
-        return f'Date:{self.date}, time: {self.time}'
+        return f'{self.date}:{self.time}'
 
 # preference types:
 #     no_congrats
@@ -54,7 +54,7 @@ class MbUser:
 
     async def add(self, res: Result, chn: discord.TextChannel):
         self.results.append(res)
-        self.results = [res for res in self.results if res.date >= date.today()]# remove any results that are from earlier than today
+        self.results = [r for r in self.results if r.date >= date.today()]# remove any results that are from earlier than today
         if res.date > date.today():# if it's tomorrow's puzzle
             await chn.send(f'Great job on tomorrow\'s puzzle, {self.id.display_name}!')
         await self.congratulate(chn)
@@ -121,11 +121,11 @@ class MbUser:
         return None
     
     def get_results_string(self):
-        results_string = ''
+        string = self.name
         for r in self.results:
-            results_string += str(r)
-            results_string += '\n'
-        return results_string
+            string += ' ' + str(r)
+        return string
+
 
 # placing class for leaderboard
     # user: MbUser
@@ -228,8 +228,8 @@ class MiniBot:
     # guild ids:
     #   lanes and nuttings: 1177377997993549824
     #   test: 1213896278614745158
-    def read_preferences(self):
-        guild = self.client.get_guild(1177377997993549824)
+    def read_preferences(self, guild_id: int):
+        guild = self.client.get_guild(guild_id)
         if not guild:
             print('not guild')
             return 1
@@ -260,6 +260,41 @@ class MiniBot:
             for preference in preferences:
                 pref_tokens = preference.split(':')
                 my_user.set_preference(Preference(pref_tokens[0], int(pref_tokens[1])))
+    
+    def read_results(self, guild_id: int):
+        guild = self.client.get_guild(guild_id)
+        if not guild:
+            print('not guild')
+            return 1
+        file = open('files/results', 'r')
+        file_contents = file.readlines()
+        file.close()
+        for line in file_contents:
+            # if the line is a comment, do nothing
+            if line.startswith('#'):
+                continue
+            words = line.split()
+            # if it's an empty line, do nothing
+            if len(words) == 0:
+                continue
+            name = words[0]
+            results = words[1:]
+            # get the discord user from their name
+            duser = discord.utils.get(guild.members, name=name)
+            # if we can't find the discord user
+            if not duser:
+                print('no user found for ' + name)
+                continue
+            # add them to the system if they're not already in it
+            my_user = self.get_mb_user(duser)
+            if not my_user:
+                my_user = MbUser(duser)
+                self.users.append(my_user)
+            for result in results:
+                res_tokens = result.split(':')
+                date_format = '%Y-%m-%d'
+                date = datetime.strptime(res_tokens[0], date_format).date()
+                my_user.results.append(Result(date, int(res_tokens[1])))
             
             
     def write_preferences(self):
@@ -278,15 +313,36 @@ class MiniBot:
         file.writelines(file_contents)
         file.close()
 
+    def write_preferences(self):
+        file = open('files/results', 'r')
+        file_contents = file.readlines()
+        file.close()
+        # get rid of everything except the comments section
+        file_contents = [line for line in file_contents if line.startswith('#')]
+        for user in self.users:
+            string = user.get_results_string() + '\n'
+            # if they actually have results stored, add it to the string to write to the file
+            if len(string.split()) > 1:
+                file_contents.append(string)
+        
+        file = open('files/preferences', 'w')
+        file.writelines(file_contents)
+        file.close()
+
     #TODO read placings
     #TODO write placings
     #TODO read results
     #TODO write results
     #TODO read all (just calls read placings, results, and preferences)
     #TODO write all (just calls write placings, results, and preferences)
-        
+
+    # guild ids:
+    #   lanes and nuttings: 1177377997993549824
+    #   test: 1213896278614745158
     def read_in_info(self):
-        self.read_preferences()
+        guild_id = 1213896278614745158# test TODO change this 
+        # guild_id = 1177377997993549824# lanes and nuttings server
+        self.read_preferences(guild_id)
     
     #TODO run command, where I can tell the bot to run a bash command, and it prints out the results
     # at this point, command.content doesn't contain 'minibot' or anything like that
