@@ -189,7 +189,9 @@ class MiniBot:
             self.users.append(MbUser(userID))
 
         # add the results to the user's results
-        await self.get_mb_user(userID).add(res, mes.channel) 
+        await self.get_mb_user(userID).add(res, mes.channel)
+
+        self.write_results()
 
     # async def write_to_file(self):
     #     with open('file.yaml', 'w') as yaml_file:
@@ -313,7 +315,7 @@ class MiniBot:
         file.writelines(file_contents)
         file.close()
 
-    def write_preferences(self):
+    def write_results(self):
         file = open('files/results', 'r')
         file_contents = file.readlines()
         file.close()
@@ -325,24 +327,20 @@ class MiniBot:
             if len(string.split()) > 1:
                 file_contents.append(string)
         
-        file = open('files/preferences', 'w')
+        file = open('files/results', 'w')
         file.writelines(file_contents)
         file.close()
 
-    #TODO read placings
-    #TODO write placings
-    #TODO read results
-    #TODO write results
-    #TODO read all (just calls read placings, results, and preferences)
-    #TODO write all (just calls write placings, results, and preferences)
+ 
 
     # guild ids:
     #   lanes and nuttings: 1177377997993549824
     #   test: 1213896278614745158
     def read_in_info(self):
-        guild_id = 1213896278614745158# test TODO change this 
-        # guild_id = 1177377997993549824# lanes and nuttings server
+        # guild_id = 1213896278614745158# test TOD O change this 
+        guild_id = 1177377997993549824# lanes and nuttings server
         self.read_preferences(guild_id)
+        self.read_results(guild_id)
     
     #TODO run command, where I can tell the bot to run a bash command, and it prints out the results
     # at this point, command.content doesn't contain 'minibot' or anything like that
@@ -427,6 +425,7 @@ class MiniBot:
                     await command.message.reply('usage: add_time person day time')
                     return
                 await my_user.add(Result(day, time), command.message.channel)
+                self.write_results()
                 
             if command.message.reference: # if it's a reply, that means I'm running the command as the user
                 referenced_message = await command.message.channel.fetch_message(command.message.reference.message_id)
@@ -593,8 +592,6 @@ intents.members = True
 client = discord.Client(intents=intents)
 
 
-# TODO handle data so that it won't be lost when disconnecting and/or restarting
-# TODO handle global object properly
 # global object
 bot = MiniBot(client)
 
@@ -629,8 +626,8 @@ async def daily_scheduler():
 
 
 # bot's token
-token_file = open('files/testToken', 'r')# TODO change back
-# token_file = open('files/token', 'r')
+# token_file = open('files/testToken', 'r')# TO DO change back
+token_file = open('files/token', 'r')
 token = token_file.read()
 token_file.close()
 
