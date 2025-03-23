@@ -337,7 +337,7 @@ class MiniBot:
     #   lanes and nuttings: 1177377997993549824
     #   test: 1213896278614745158
     def read_in_info(self):
-        # guild_id = 1213896278614745158# test TOD O change this 
+        #guild_id = 1213896278614745158# test T ODO change this 
         guild_id = 1177377997993549824# lanes and nuttings server
         self.read_preferences(guild_id)
         self.read_results(guild_id)
@@ -599,8 +599,9 @@ bot = MiniBot(client)
 @client.event
 async def on_ready():
     print(f'Logged in as {client.user.name}')
+    await asyncio.sleep(10)
+    bot.read_in_info()
     await daily_scheduler()
-
 # Event handler for messages
 @client.event
 async def on_message(message):
@@ -627,7 +628,7 @@ async def daily_scheduler():
 
 # bot's token
 # token_file = open('files/testToken', 'r')# TO DO change back
-token_file = open('files/token', 'r')
+token_file = open('files/test_token', 'r')
 token = token_file.read()
 token_file.close()
 
@@ -636,3 +637,5 @@ token_file.close()
 # Run the bot
 # client.loop.create_task(daily_scheduler())
 client.run(token)
+
+
