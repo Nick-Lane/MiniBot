@@ -602,6 +602,7 @@ async def on_ready():
     await asyncio.sleep(10)
     bot.read_in_info()
     await daily_scheduler()
+
 # Event handler for messages
 @client.event
 async def on_message(message):
@@ -628,7 +629,7 @@ async def daily_scheduler():
 
 # bot's token
 # token_file = open('files/testToken', 'r')# TO DO change back
-token_file = open('files/test_token', 'r')
+token_file = open('files/token', 'r')
 token = token_file.read()
 token_file.close()
 
