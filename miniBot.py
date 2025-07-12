@@ -199,6 +199,13 @@ class MiniBot:
     
     # return Result object, if the message is a mini Result
     def check_result(self, message_content: str) -> Result:
+
+
+        # if nyt is being stupid and sending the wrong message, remove the link from the beginning of the message
+        if message_content.startswith('https://www.nytimes.com/crosswords/game/mini I'):
+            message_content = message_content[45:]
+        
+
         # regular expressions to match the patterns
         url_pattern = r'https://www.nytimes.com/badges/games/mini.html\?d=(\d{4}-\d{2}-\d{2})&t=(\d+)'
         app_pattern = r'I solved the (\d{1,2}/\d{1,2}/\d{4}) New York Times Mini Crossword in (\d{1,2}):(\d{2})'
@@ -337,7 +344,7 @@ class MiniBot:
     #   lanes and nuttings: 1177377997993549824
     #   test: 1213896278614745158
     def read_in_info(self):
-        #guild_id = 1213896278614745158# test T ODO change this 
+        # guild_id = 1213896278614745158# test TOD O change this 
         guild_id = 1177377997993549824# lanes and nuttings server
         self.read_preferences(guild_id)
         self.read_results(guild_id)
@@ -554,6 +561,7 @@ class MiniBot:
     #   test: 1213896278614745158        
     async def daily_leaderboard(self):
         guild = self.client.get_guild(1177377997993549824)
+        # guild = self.client.get_guild(1213896278614745158)# test T ODO change this
         if not guild:
             print('guild not found')
             return
