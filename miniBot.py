@@ -163,11 +163,13 @@ class Permissions:
 # bot class.
 #     users: list of type MbUser
 #     client: discord Client object
+#     guild_id: id of guild: int
 class MiniBot:
-    def __init__(self, client: discord.Client):
+    def __init__(self, client: discord.Client, guild_id: int):
         self.users = [] # list of type MbUser
         self.per = Permissions('files/permissions')
         self.client = client
+        self.guild_id = guild_id
     
     def is_user(self, userID: discord.User):
         for u in self.users:
@@ -238,7 +240,7 @@ class MiniBot:
     #   lanes and nuttings: 1177377997993549824
     #   test: 1213896278614745158
     def read_preferences(self, guild_id: int):
-        guild = self.client.get_guild(guild_id)
+        guild = self.client.get_guild(guild_id)# TODO change this so it uses self.guild_id and doesn't take the argument
         if not guild:
             print('not guild')
             return 1
@@ -271,7 +273,7 @@ class MiniBot:
                 my_user.set_preference(Preference(pref_tokens[0], int(pref_tokens[1])))
     
     def read_results(self, guild_id: int):
-        guild = self.client.get_guild(guild_id)
+        guild = self.client.get_guild(guild_id)# TODO change this so it uses self.guild_id and doesn't take argument
         if not guild:
             print('not guild')
             return 1
@@ -344,14 +346,13 @@ class MiniBot:
     #   lanes and nuttings: 1177377997993549824
     #   test: 1213896278614745158
     def read_in_info(self):
-        # guild_id = 1213896278614745158# test TOD O change this 
-        guild_id = 1177377997993549824# lanes and nuttings server
-        self.read_preferences(guild_id)
-        self.read_results(guild_id)
+        # guild_id = 1213896278614745158# test T ODO change this 
+        # guild_id = 1177377997993549824# lanes and nuttings server
+        self.read_preferences(self.guild_id)
+        self.read_results(self.guild_id)
     
-    #TODO run command, where I can tell the bot to run a bash command, and it prints out the results
     # at this point, command.content doesn't contain 'minibot' or anything like that
-    async def run_command(self, command: Command):
+    async def run_command(self, command: Command, channel: discord.TextChannel):
         setting_preference = False
         args = command.content.split()
         if len(args) == 0:
@@ -392,12 +393,12 @@ class MiniBot:
             responses = ['Okay', 'Awesome', 'Sweet', 'Cool', 'Gotcha']
             response = responses[random.randrange(0,len(responses))]
             if setting_preference:
-                await command.message.reply(f'{response}, {command.user.display_name}, preference set.')
+                await command.message.channel.send(f'{response}, {command.user.display_name}, preference set.')
                 self.write_preferences()
             return
         # ---------------admin commands--------------------------
         else:# it's an admin command
-            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h', 'react', 'reply', 'read_info', 'ri', 'add_time', 'at']
+            admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h', 'react', 'reply', 'read_info', 'ri', 'add_time', 'at', 'su']
             
             if not self.per.has_permission(command.user.name, 'admin'):
                 await command.message.reply('Permission denied.')
@@ -433,11 +434,27 @@ class MiniBot:
                     return
                 await my_user.add(Result(day, time), command.message.channel)
                 self.write_results()
-                
+            
+            if command_zero == 'su':
+                guild = self.client.get_guild(self.guild_id)
+                channel = discord.utils.get(command.message.guild.channels, name=args[2])
+                if not channel:
+                    await command.message.reply('usage: su username channel command')
+                    return
+                duser = discord.utils.get(guild.members, name=args[1])
+                if not duser:
+                    await command.message.reply('usage: su username channel command')
+                    return
+                await self.run_command(Command('user', ' '.join(args[3:]), duser, command.message), channel)
+
+
             if command.message.reference: # if it's a reply, that means I'm running the command as the user
                 referenced_message = await command.message.channel.fetch_message(command.message.reference.message_id)
-                await self.run_command(Command('user', command.content, referenced_message.author, command.message))
+                await self.run_command(Command('user', command.content, referenced_message.author, command.message), command.message.channel)
                 return
+            
+
+
             if command_zero not in admin_commands:
                 await command.message.reply('Command not recognized')
                 return
@@ -447,7 +464,7 @@ class MiniBot:
                 channel = discord.utils.get(command.message.guild.channels, name=args[1])
                 if channel:
                     say_channel_length = len(args[0]) + len(args[1]) + 2
-                    message = command_content_original[say_channel_length:] # message is everything after say <channel>
+                    message = command_content_original[say_channel_length:] # message is everything after say <channel> TODO replace this with ' '.join()
                     await channel.send(message)
                 else:
                     await command.message.reply('channel not found')
@@ -527,7 +544,7 @@ class MiniBot:
             command_type = 'admin' if admin_command else 'user'
             content = message.content[len(command_token):]
             author = message.author
-            await self.run_command(Command(command_type, content, author, message))
+            await self.run_command(Command(command_type, content, author, message), message.channel)
 
         
     
@@ -560,8 +577,9 @@ class MiniBot:
     #   lanes and nuttings: 1177377997993549824
     #   test: 1213896278614745158        
     async def daily_leaderboard(self):
-        guild = self.client.get_guild(1177377997993549824)
-        # guild = self.client.get_guild(1213896278614745158)# test T ODO change this
+        # guild = self.client.get_guild(1177377997993549824)
+        # guild = self.client.get_guild(1213896278614745158)# test TODO change this
+        guild = self.client.get_guild(self.guild_id)
         if not guild:
             print('guild not found')
             return
@@ -601,7 +619,7 @@ client = discord.Client(intents=intents)
 
 
 # global object
-bot = MiniBot(client)
+bot = MiniBot(client, 1213896278614745158)
 
 # Event handler for when the bot is ready
 @client.event
