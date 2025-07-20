@@ -371,7 +371,7 @@ class MiniBot:
                 # await self.run_command(Command('user', 'help', user, command.message))
                 return
             if command_zero == 'my_times' or command_zero == 'mt':
-                await command.message.reply(user.get_results_string())
+                await channel.send(user.get_results_string())
                 return
             if command_zero == 'goofy_ratio' and len(args) > 1:
                 setting_preference = True
@@ -382,18 +382,18 @@ class MiniBot:
                     return
                 help_message = file.read()
                 file.close()
-                await command.message.reply(help_message)
+                await channel.send(help_message)
                 return
             elif command_zero == 'my_preferences' or command_zero == 'mp':
                 preferences_string = self.get_mb_user(command.user).get_preferences_string()
-                await command.message.reply(preferences_string)
+                await channel.send(preferences_string)
             else: # it's 'no_congrats', 'yes_congrats', 'no_rekkening', 'yes_rekkening', 'no_leaderboard', 'yes_leaderboard'
                 setting_preference = True
                 self.get_mb_user(command.user).set_preference(Preference(args[0], 1))
             responses = ['Okay', 'Awesome', 'Sweet', 'Cool', 'Gotcha']
             response = responses[random.randrange(0,len(responses))]
             if setting_preference:
-                await command.message.channel.send(f'{response}, {command.user.display_name}, preference set.')
+                await channel.send(f'{response}, {command.user.display_name}, preference set.')
                 self.write_preferences()
             return
         # ---------------admin commands--------------------------
@@ -401,7 +401,7 @@ class MiniBot:
             admin_commands = ['say', 'leaderboard', 'lb', 'help', 'h', 'react', 'reply', 'read_info', 'ri', 'add_time', 'at', 'su']
             
             if not self.per.has_permission(command.user.name, 'admin'):
-                await command.message.reply('Permission denied.')
+                await channel.send('Permission denied.')
                 return
             if command_zero == 'add_time' or command_zero == 'at':
                 if len(args) < 4:
