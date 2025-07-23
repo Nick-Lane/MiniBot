@@ -5,6 +5,19 @@ import random
 import asyncio
 import emoji
 
+
+test = False
+
+real_guild_id = 1177377997993549824
+test_guild_id = 1213896278614745158
+
+if test:
+    guild_id = test_guild_id
+else:
+    guild_id = real_guild_id
+
+
+
 # result class
 #     date: result date
 #     time: time, in seconds that it took to complete the puzzle
@@ -619,7 +632,7 @@ client = discord.Client(intents=intents)
 
 
 # global object
-bot = MiniBot(client, 1213896278614745158)
+bot = MiniBot(client, guild_id)
 
 # Event handler for when the bot is ready
 @client.event
