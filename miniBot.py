@@ -13,14 +13,18 @@ test_guild_id = 1213896278614745158
 
 if test:
     guild_id = test_guild_id
+    token_file_name = 'files/test_token'
 else:
     guild_id = real_guild_id
+    token_file_name = 'files/token'
 
 
 
-# result class
-#     date: result date
-#     time: time, in seconds that it took to complete the puzzle
+"""
+result class
+    date: result date
+    time: time, in seconds that it took to complete the puzzle
+"""
 class Result:
     def __init__(self, date: datetime.date, time: int):
         self.date = date
@@ -28,11 +32,13 @@ class Result:
     def __str__(self):
         return f'{self.date}:{self.time}'
 
-# preference types:
-#     no_congrats
-#     no_rekkening
-#     no_leaderboard
-#     goofy_ratio
+""" 
+preference types:
+    no_congrats
+    no_rekkening
+    no_leaderboard
+    goofy_ratio
+"""
 class Preference:
     def __init__(self, type: str, value: int):
         self.type = type
@@ -40,11 +46,13 @@ class Preference:
     def __str__(self):
         return f'{self.type}:{self.value}'
 
-# Command class. 
-#    type: 'user' | 'admin' 
-#    content: just the command (no 'minibot' or 'mb')
-#    user: the discord User executing the command.
-#    message: discord Message in which the command was sent
+""" 
+Command class. 
+    type: 'user' | 'admin' 
+    content: just the command (no 'minibot' or 'mb')
+    user: the discord User executing the command.
+    message: discord Message in which the command was sent
+"""
 class Command:
     def __init__(self, type: str, content: str, user: discord.User, message: discord.Message):
         self.type = type
@@ -52,18 +60,21 @@ class Command:
         self.user = user
         self.message = message
 
-# user class for MiniBot
-#     id: discord API User object
-#     results: list of type Result
-#     preferences: list of type Preference
-#     times_placed: list of number of times placed 1st, 2nd, etc. index 0 will be empty so index 1 is 1st, etc.
+"""
+user class for MiniBot
+    name: username
+    id: discord API User object
+    results: list of type Result
+    preferences: list of type Preference
+    times_placed: list of number of times placed 1st, 2nd, etc. index 0 will be empty so index 1 is 1st, etc.
+"""
 class MbUser:
     def __init__(self, id: discord.User):
-        self.name = id.name # name is their username
-        self.id = id # id is a discord user
-        self.results = [] # list of type Result
-        self.preferences = [] # list of type Preference
-        self.times_placed = [] # number of times placed 1st, 2nd, etc. index 0 will be empty so index 1 is 1st, etc.
+        self.name = id.name
+        self.id = id
+        self.results = []
+        self.preferences = []
+        self.times_placed = []
 
     async def add(self, res: Result, chn: discord.TextChannel):
         self.results.append(res)
@@ -140,10 +151,12 @@ class MbUser:
         return string
 
 
-# placing class for leaderboard
-    # user: MbUser
-    # result: Result
-    # place: place given in leaderboard
+"""
+placing class for leaderboard
+    user: MbUser
+    result: Result
+    place: place given in leaderboard
+"""
 class Placing:
     def __init__(self, user: MbUser, result: Result):
         self.user = user
@@ -151,9 +164,11 @@ class Placing:
         self.place = -1
 
 
-# poorly written class for permissions.
-#     permissions is a list of strings
-#         each string consists of a permission name, followed by the users that have that permission
+"""
+poorly written class for permissions.
+    permissions is a list of strings
+        each string consists of a permission name, followed by the users that have that permission
+"""
 class Permissions:
     def __init__(self,fname: str):
         self.permissions = []
@@ -172,11 +187,12 @@ class Permissions:
     def has_permission(self, name, permission: str) -> bool:
         return name in self.get(permission)
 
-# TODO write all information out to files every night during daily_leaderboard, and make it so we can read it back in, in case the bot loses power or connection
-# bot class.
-#     users: list of type MbUser
-#     client: discord Client object
-#     guild_id: id of guild: int
+"""
+bot class.
+    users: list of type MbUser
+    client: discord Client object
+    guild_id: id of guild: int
+"""
 class MiniBot:
     def __init__(self, client: discord.Client, guild_id: int):
         self.users = [] # list of type MbUser
@@ -208,9 +224,6 @@ class MiniBot:
 
         self.write_results()
 
-    # async def write_to_file(self):
-    #     with open('file.yaml', 'w') as yaml_file:
-    #         yaml.safe_dump(self.users, yaml_file)
     
     # return Result object, if the message is a mini Result
     def check_result(self, message_content: str) -> Result:
@@ -248,12 +261,8 @@ class MiniBot:
         # create a Result object and return it
         return Result(date,time)
     
-    #TODO make this happen on startup, possibly in on_ready
-    # guild ids:
-    #   lanes and nuttings: 1177377997993549824
-    #   test: 1213896278614745158
-    def read_preferences(self, guild_id: int):
-        guild = self.client.get_guild(guild_id)# TODO change this so it uses self.guild_id and doesn't take the argument
+    def read_preferences(self):
+        guild = self.client.get_guild(self.guild_id)
         if not guild:
             print('not guild')
             return 1
@@ -285,8 +294,8 @@ class MiniBot:
                 pref_tokens = preference.split(':')
                 my_user.set_preference(Preference(pref_tokens[0], int(pref_tokens[1])))
     
-    def read_results(self, guild_id: int):
-        guild = self.client.get_guild(guild_id)# TODO change this so it uses self.guild_id and doesn't take argument
+    def read_results(self):
+        guild = self.client.get_guild(self.guild_id)
         if not guild:
             print('not guild')
             return 1
@@ -355,16 +364,12 @@ class MiniBot:
 
  
 
-    # guild ids:
-    #   lanes and nuttings: 1177377997993549824
-    #   test: 1213896278614745158
     def read_in_info(self):
-        # guild_id = 1213896278614745158# test T ODO change this 
-        # guild_id = 1177377997993549824# lanes and nuttings server
-        self.read_preferences(self.guild_id)
-        self.read_results(self.guild_id)
+        self.read_preferences()
+        self.read_results()
     
     # at this point, command.content doesn't contain 'minibot' or anything like that
+    # this function is so long and so bad, holy shit.
     async def run_command(self, command: Command, channel: discord.TextChannel):
         setting_preference = False
         args = command.content.split()
@@ -380,8 +385,7 @@ class MiniBot:
             if not user:
                 self.users.append(MbUser(command.user))
             if command_zero not in user_commands:
-                # await command.message.reply('Command not recognized')
-                # await self.run_command(Command('user', 'help', user, command.message))
+                # just assume that nobody was trying to use a command, and is just talking about/to MiniBot
                 return
             if command_zero == 'my_times' or command_zero == 'mt':
                 await channel.send(user.get_results_string())
@@ -586,12 +590,7 @@ class MiniBot:
             seconds_string = zero + str(seconds)
             return minutes_string + ':' + seconds_string
 
-    # guild ids:
-    #   lanes and nuttings: 1177377997993549824
-    #   test: 1213896278614745158        
     async def daily_leaderboard(self):
-        # guild = self.client.get_guild(1177377997993549824)
-        # guild = self.client.get_guild(1213896278614745158)# test TODO change this
         guild = self.client.get_guild(self.guild_id)
         if not guild:
             print('guild not found')
@@ -667,15 +666,13 @@ async def daily_scheduler():
 
 
 # bot's token
-# token_file = open('files/testToken', 'r')# TO DO change back
-token_file = open('files/token', 'r')
+token_file = open(token_file_name, 'r')
 token = token_file.read()
 token_file.close()
 
 
 
 # Run the bot
-# client.loop.create_task(daily_scheduler())
 client.run(token)
 
 
