@@ -228,19 +228,13 @@ class MiniBot:
     # return Result object, if the message is a mini Result
     def check_result(self, message_content: str) -> Result:
 
-
-        # if nyt is being stupid and sending the wrong message, remove the link from the beginning of the message
-        if message_content.startswith('https://www.nytimes.com/crosswords/game/mini I'):
-            message_content = message_content[45:]
-        
-
         # regular expressions to match the patterns
         url_pattern = r'https://www.nytimes.com/badges/games/mini.html\?d=(\d{4}-\d{2}-\d{2})&t=(\d+)'
         app_pattern = r'I solved the (\d{1,2}/\d{1,2}/\d{4}) New York Times Mini Crossword in (\d{1,2}):(\d{2})'
 
-        # match the patterns
-        url_match = re.match(url_pattern, message_content)
-        app_match = re.match(app_pattern, message_content)
+        # search for the patterns
+        url_match = re.search(url_pattern, message_content)
+        app_match = re.search(app_pattern, message_content)
 
         if url_match:
             date_str = url_match.group(1)
